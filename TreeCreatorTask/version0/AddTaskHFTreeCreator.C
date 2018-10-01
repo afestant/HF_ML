@@ -8,7 +8,7 @@ AliAnalysisTaskSEHFTreeCreator *AddTaskHFTreeCreator(Bool_t readMC=kTRUE,
                                                      Int_t fillTreeD0=1,
                                                      Int_t fillTreeDs=1,
                                                      Int_t fillTreeDplus=1,
-                                                     Int_t pidOptD0=AliHFCutOptTreeHandler::kNsigmaPIDchar,
+                                                     Int_t pidOptD0=AliHFCutOptTreeHandler::kNoPID,
                                                      Int_t pidOptDs=AliHFCutOptTreeHandler::kNsigmaPIDchar,
                                                      Int_t pidOptDplus=AliHFCutOptTreeHandler::kNsigmaPIDchar)
 {
@@ -25,7 +25,6 @@ AliAnalysisTaskSEHFTreeCreator *AddTaskHFTreeCreator(Bool_t readMC=kTRUE,
     }
     
     //getting the cuts
-    Bool_t stdcuts=kFALSE;
     TFile* filecuts;
     if( cutsfile.EqualTo("") ) {
         ::Fatal("AddTaskHFTreeCreator", "Input file not provided");
@@ -50,7 +49,7 @@ AliAnalysisTaskSEHFTreeCreator *AddTaskHFTreeCreator(Bool_t readMC=kTRUE,
     if(!analysisCutsDplustoKpipi) ::Fatal("AddTaskHFTreeCreator", "analysisCutsDplustoKpipi : check your cut file");
     
     TList *cutsList=new TList();
-    cutsList->SetOwner();
+    cutsList->SetOwner(kTRUE);
     cutsList->SetName("cut_objects");
     cutsList->Add(looseCutsD0toKpi);
     cutsList->Add(looseCutsDstoKKpi);
@@ -60,6 +59,7 @@ AliAnalysisTaskSEHFTreeCreator *AddTaskHFTreeCreator(Bool_t readMC=kTRUE,
     cutsList->Add(analysisCutsDplustoKpipi);
     
     AliAnalysisTaskSEHFTreeCreator *task = new AliAnalysisTaskSEHFTreeCreator("TreeCreatorTask",cutsList);
+
     task->SetReadMC(readMC);
     task->SetSystem(system);
     task->SetAODMismatchProtection(AODProtection);
@@ -70,6 +70,9 @@ AliAnalysisTaskSEHFTreeCreator *AddTaskHFTreeCreator(Bool_t readMC=kTRUE,
     task->SetPIDoptD0Tree(pidOptD0);
     task->SetPIDoptDsTree(pidOptDs);
     task->SetPIDoptDplusTree(pidOptDplus);
+    task->SetDebugLevel(4);
+    
+    mgr->AddTask(task);
     
     // Create containers for input/output
     
@@ -77,56 +80,32 @@ AliAnalysisTaskSEHFTreeCreator *AddTaskHFTreeCreator(Bool_t readMC=kTRUE,
     TString histoname = "coutputEntries";
     TString cutsname = "coutputCuts";
     TString normname = "coutputNorm";
-    TString treename1 = "coutputTreeD0";
-    TString treename2 = "coutputTreeDs";
-    TString treename3 = "coutputTreeDplus";
+    TString treename = "coutputTree";
+
     inname += finDirname.Data();
     histoname += finDirname.Data();
     cutsname += finDirname.Data();
     normname += finDirname.Data();
-    treename1 += finDirname.Data();
-    treename2 += finDirname.Data();
-    treename3 += finDirname.Data();
+    treename += finDirname.Data();
+   
     
     
-    AliAnalysisDataContainer *cinput = mgr->CreateContainer(inname,TChain::Class(), AliAnalysisManager::kInputContainer);
+    AliAnalysisDataContainer *cinput = mgr->CreateContainer(inname,TChain::Class(),AliAnalysisManager::kInputContainer);
     TString outputfile = AliAnalysisManager::GetCommonFileName();
     outputfile += ":PWGHF_TreeCreator";
     
-    AliAnalysisDataContainer *coutputEntries = mgr->CreateContainer(histoname,TH1F::Class(),
-                                                                    AliAnalysisManager::kOutputContainer,
-                                                                    outputfile.Data());
-    AliAnalysisDataContainer *coutputCuts = mgr->CreateContainer(cutsname,TList::Class(),
-                                                                 AliAnalysisManager::kOutputContainer,
-                                                                 outputfile.Data());
-    AliAnalysisDataContainer *coutputNorm = mgr->CreateContainer(normname,TList::Class(),
-                                                                 AliAnalysisManager::kOutputContainer,
-                                                                 outputfile.Data());
-    AliAnalysisDataContainer *coutputTree1 = 0x0;
-    if(fillTreeD0){
-     coutputTree1 = mgr->CreateContainer(treename1,TTree::Class(),AliAnalysisManager::kOutputContainer,outputfile.Data());
-     //coutputTree1->SetSpecialOutput();
-    }
-    AliAnalysisDataContainer *coutputTree2 = 0x0;
-    if(fillTreeDs){
-     coutputTree2 = mgr->CreateContainer(treename2,TTree::Class(),AliAnalysisManager::kOutputContainer,outputfile.Data());
-     //coutputTree2->SetSpecialOutput();
-    }
-    AliAnalysisDataContainer *coutputTree3 = 0x0;
-    if(fillTreeDplus){
-     coutputTree3 = mgr->CreateContainer(treename3,TTree::Class(),AliAnalysisManager::kOutputContainer,outputfile.Data());
-     //coutputTree3->SetSpecialOutput();
-    }
-    
+    AliAnalysisDataContainer *coutputEntries = mgr->CreateContainer(histoname,TH1F::Class(),AliAnalysisManager::kOutputContainer,outputfile.Data());
+    AliAnalysisDataContainer *coutputCuts    = mgr->CreateContainer(cutsname,TList::Class(),AliAnalysisManager::kOutputContainer,outputfile.Data());
+    AliAnalysisDataContainer *coutputNorm    = mgr->CreateContainer(normname,TList::Class(),AliAnalysisManager::kOutputContainer,outputfile.Data());
+    AliAnalysisDataContainer *coutputTree    = mgr->CreateContainer(treename,TList::Class(),AliAnalysisManager::kOutputContainer,outputfile.Data());
+
     
     mgr->ConnectInput(task,0,mgr->GetCommonInputContainer());
     mgr->ConnectOutput(task,1,coutputEntries);
     mgr->ConnectOutput(task,2,coutputCuts);
     mgr->ConnectOutput(task,3,coutputNorm);
-    if(fillTreeD0)    mgr->ConnectOutput(task,4,coutputTree1);
-    if(fillTreeDs)    mgr->ConnectOutput(task,5,coutputTree2);
-    if(fillTreeDplus) mgr->ConnectOutput(task,6,coutputTree3);
-    
+    mgr->ConnectOutput(task,4,coutputTree);
+       
     return task;
     
     

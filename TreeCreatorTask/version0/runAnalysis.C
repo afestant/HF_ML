@@ -10,12 +10,43 @@
 #include "AliAnalysisTaskSEHFTreeCreator.h"
 #endif
 
+//SETTINGS
+//************************************
+
+Bool_t runLocal=kFALSE;                                  // flag to run locally on AliAOD.root + AliAOD.VertexingHF.root
+TString pathToLocalAODfiles="../AODFiles";               // path to find AOD files when running locally
+Bool_t runGridTest=kTRUE;                                // flag to run a grid test: kTRUE (+runLocal=kFALSE). To run job on GRID: runGridTest=kFALSE, runLocal=kFALSE 
+TString runMode="full";                                  // sets the run grid mode: "full", "terminate"
+
+TString aliPhysVersion="vAN-20180930-1";
+
+//paths on Alien
+TString gridDataDir="/alice/sim/2016/LHC16i2a/";
+TString gridDataPattern="AOD198";
+
+// Alien output directory
+TString gridWorkingDir="testNtupleCreator";
+TString gridOutputDir="output";
+
+//run numbers
+const Int_t nruns = 1;
+Int_t runlist[nruns] = {246994};
+
+Bool_t isRunOnMC=kTRUE;
+
+//Task configuration
+TString cutFile="./cutfile/D0DsDplusCuts.root";          // file containing the cuts for the different mesons, see directory cutfile
+
+
+//************************************
+
+
 void runAnalysis()
 {
     // set if you want to run the analysis locally (kTRUE), or on grid (kFALSE)
-    Bool_t local = kTRUE;
+    Bool_t local = runLocal;
     // if you run on grid, specify test mode (kTRUE) or full grid model (kFALSE)
-    Bool_t gridTest = kFALSE;
+    Bool_t gridTest = runGridTest;
     
     // since we will compile a class, tell root where to look for headers  
 #if !defined (__CINT__) || defined (__CLING__)
@@ -31,51 +62,43 @@ void runAnalysis()
     AliAODInputHandler *aodH = new AliAODInputHandler();
     mgr->SetInputEventHandler(aodH);
 
-    //AliMCEventHandler  *mcH = new AliMCEventHandler();
-    //mgr->SetMCtruthEventHandler(mcH);
-
-
 
     // compile the class and load the add task macro
     // here we have to differentiate between using the just-in-time compiler
     // from root6, or the interpreter of root5
 #if !defined (__CINT__) || defined (__CLING__)
 
-    AliPhysicsSelectionTask *physseltask = reinterpret_cast<AliPhysicsSelectionTask *>(gInterpreter->ProcessLine(Form(".x %s (%d)", gSystem->ExpandPathName("$ALICE_PHYSICS/OADB/macros/AddTaskPhysicsSelection.C"),kTRUE)));
+    AliPhysicsSelectionTask *physseltask = reinterpret_cast<AliPhysicsSelectionTask *>(gInterpreter->ProcessLine(Form(".x %s (%d)", gSystem->ExpandPathName("$ALICE_PHYSICS/OADB/macros/AddTaskPhysicsSelection.C"),isRunOnMC)));
     
-    AliAnalysisTaskPIDResponse *pidResp = reinterpret_cast<AliAnalysisTaskPIDResponse *>(gInterpreter->ProcessLine(Form(".x %s (%d)", gSystem->ExpandPathName("$ALICE_ROOT/ANALYSIS/macros/AddTaskPIDResponse.C"),kTRUE)));
+    AliAnalysisTaskPIDResponse *pidResp = reinterpret_cast<AliAnalysisTaskPIDResponse *>(gInterpreter->ProcessLine(Form(".x %s (%d)", gSystem->ExpandPathName("$ALICE_ROOT/ANALYSIS/macros/AddTaskPIDResponse.C"),isRunOnMC)));
     
     AliMultSelectionTask *multSel = reinterpret_cast<AliMultSelectionTask *>(gInterpreter->ProcessLine(Form(".x %s", gSystem->ExpandPathName("$ALICE_PHYSICS/OADB/COMMON/MULTIPLICITY/macros/AddTaskMultSelection.C"))));
     multSel->SetAlternateOADBforEstimators("LHC15o-DefaultMC-HIJING");
 
     gInterpreter->LoadMacro("AliHFCutOptTreeHandler.cxx++g");
-    /*gInterpreter->LoadMacro("AliAnalysisTaskSED0_TreeMVA.cxx++g");
-    //AliAnalysisTaskSED0Mass_AF *task = reinterpret_cast<AliAnalysisTaskSED0Mass_AF*>(gInterpreter->ExecuteMacro("AddTaskD0Mass_AF.C"));
-    AliAnalysisTaskSED0_TreeMVA *task = reinterpret_cast<AliAnalysisTaskSED0_TreeMVA*>(gInterpreter->ProcessLine(Form(".x %s (%d,%d,%d,%d,%d,%d,%f,%f,\"%s\",\"%s\",\"%s\",%d,%d,%d,%d,%d,%d,%d)",gSystem->ExpandPathName("AddTaskD0_TreeMVA.C"),0, kTRUE, kFALSE, kFALSE, 1, 0, 0., 80., "_080", "../cutfiles/D0Cuts_Y_R6.root", "D0toKpiCuts",kFALSE, kFALSE, kFALSE,kFALSE, kFALSE, kFALSE,kFALSE)));
-    
-    */
     gInterpreter->LoadMacro("AliAnalysisTaskSEHFTreeCreator.cxx++g");
-    AliAnalysisTaskSEHFTreeCreator *task = reinterpret_cast<AliAnalysisTaskSEHFTreeCreator*>(gInterpreter->ProcessLine(Form(".x %s (%d,%d,\"%s\",\"%s\")",gSystem->ExpandPathName("AddTaskHFTreeCreator.C"),kTRUE, 1, "HFTreeCreator", "./cutfile/D0DsDplusCuts.root")));
+    AliAnalysisTaskSEHFTreeCreator *task = reinterpret_cast<AliAnalysisTaskSEHFTreeCreator*>(gInterpreter->ProcessLine(Form(".x %s (%d,%d,\"%s\",\"%s\")",gSystem->ExpandPathName("AddTaskHFTreeCreator.C"),isRunOnMC, 1, "HFTreeCreator", cutFile.Data())));
     
-    
+   
     AliAnalysisTaskSECleanupVertexingHF *taskclean =reinterpret_cast<AliAnalysisTaskSECleanupVertexingHF *>(gInterpreter->ProcessLine(Form(".x %s", gSystem->ExpandPathName("$ALICE_PHYSICS/PWGHF/vertexingHF/macros/AddTaskCleanupVertexingHF.C"))));
 
 #else
 
     gROOT->LoadMacro("$ALICE_PHYSICS/OADB/macros/AddTaskPhysicsSelection.C");
-    AliPhysicsSelectionTask *physSelTask= AddTaskPhysicsSelection(kTRUE);
+    AliPhysicsSelectionTask *physSelTask= AddTaskPhysicsSelection(isRunOnMC);
     
     gROOT->LoadMacro("$ALICE_ROOT/ANALYSIS/macros/AddTaskPIDResponse.C");
-    AliAnalysisTaskPIDResponse *pidResp = AddTaskPIDResponse(kTRUE);
+    AliAnalysisTaskPIDResponse *pidResp = AddTaskPIDResponse(isRunOnMC);
     
     gROOT->LoadMacro("$ALICE_PHYSICS/OADB/COMMON/MULTIPLICITY/macros/AddTaskMultSelection.C");
     AliMultSelectionTask *multSel = AddTaskMultSelection();
-    //multSel->SetAlternateOADBforEstimators("LHC15o-DefaultMC-HIJING");
+    multSel->SetAlternateOADBforEstimators("LHC15o-DefaultMC-HIJING");
 
     gROOT->LoadMacro("AliHFCutOptTreeHandler.cxx++g");
-    gROOT->LoadMacro("AliAnalysisTaskSED0_TreeMVA.cxx++g");
-    gROOT->LoadMacro("AddTaskD0_TreeMVA.C");
-    AliAnalysisTaskSED0_TreeMVA *task = AddTaskD0_TreeMVA(0, kTRUE, kFALSE, kFALSE, 1, 0, 0., 80., "_080", "./D0Cuts_Y_R5.root", "D0toKpiCuts",kFALSE, kFALSE, kFALSE,kFALSE, kFALSE, kFALSE,kFALSE);
+    gROOT->LoadMacro("AliAnalysisTaskSEHFTreeCreator.cxx++g");
+    gROOT->LoadMacro("AddTaskHFTreeCreator.C");
+    AliAnalysisTaskSEHFTreeCreator *task = AddTaskHFTreeCreator(isRunOnMC, 1, "HFTreeCreator", cutFile.Data());
+    
 
     gROOT->LoadMacro("$ALICE_PHYSICS/PWGHF/vertexingHF/macros/AddTaskCleanupVertexingHF.C");
     AliAnalysisTaskSECleanupVertexingHF *taskclean = AddTaskCleanupVertexingHF();
@@ -95,10 +118,8 @@ void runAnalysis()
         TChain *chainAODfriend = new TChain("aodTree");
 
         // add a few files to the chain (change this so that your local files are added)
-        //chainAOD->Add("../AODfiles/AliAOD.root");
-        //chainAODfriend->Add("../AODfiles/AliAOD.VertexingHF.root");
-        chainAOD->Add("../AODFiles/AliAOD.root");
-        chainAODfriend->Add("../AODFiles/AliAOD.VertexingHF.root");
+        chainAOD->Add(Form("%s/AliAOD.root",pathToLocalAODfiles.Data()));
+        chainAODfriend->Add(Form("%s/AliAOD.VertexingHF.root",pathToLocalAODfiles.Data()));
 
         chainAOD->AddFriend(chainAODfriend);
 
@@ -118,26 +139,24 @@ void runAnalysis()
 
         // make sure your source files get copied to grid
         alienHandler->SetAdditionalLibs("AliHFCutOptTreeHandler.cxx AliHFCutOptTreeHandler.h");
-        alienHandler->SetAdditionalLibs("AliAnalysisTaskSED0_TreeMVA.cxx AliAnalysisTaskSED0_TreeMVA.h");
-        alienHandler->SetAnalysisSource("AliAnalysisTaskSED0_TreeMVA.cxx");
+        alienHandler->SetAdditionalLibs("AliAnalysisTaskSEHFTreeCreator.cxx AliAnalysisTaskSEHFTreeCreator.h");
+        alienHandler->SetAnalysisSource("AliAnalysisTaskSEHFTreeCreator.cxx");
 
         // select the aliphysics version. all other packages
         // are LOADED AUTOMATICALLY!
-        alienHandler->SetAliPhysicsVersion("vAN-20180903-1");
+        alienHandler->SetAliPhysicsVersion(aliPhysVersion.Data());
 
         // set the Alien API version
         alienHandler->SetAPIVersion("V1.1x");
 
         // select the input data
-        alienHandler->SetGridDataDir("/alice/sim/2016/LHC16i2a/");
-        alienHandler->SetDataPattern("/AOD198/*AliAOD.root");
+        alienHandler->SetGridDataDir(gridDataDir.Data());
+        alienHandler->SetDataPattern(Form("/%s/*AliAOD.root",gridDataPattern.Data()));
         alienHandler->SetFriendChainName("AliAOD.VertexingHF.root");
 
         // MC has no prefix, data has prefix 000
-        //alienHandler->SetRunPrefix("000");
-        // runnumber
-        const Int_t nruns = 1;
-        Int_t runlist[nruns] = {246994};//, 246991, 246989, 246984, 246982};
+        if(!isRunOnMC)alienHandler->SetRunPrefix("000");
+        
 
         for(Int_t k=0; k<nruns; k++){
             alienHandler->AddRunNumber(runlist[k]);
@@ -145,7 +164,7 @@ void runAnalysis()
         alienHandler->SetNrunsPerMaster(nruns);
 
         // number of files per subjob
-        alienHandler->SetSplitMaxInputFileNumber(5);
+        alienHandler->SetSplitMaxInputFileNumber(1);
         alienHandler->SetExecutable("myTask.sh");
 
         // specify how many seconds your job may take
@@ -159,12 +178,12 @@ void runAnalysis()
         // after re-running the jobs in SetRunMode("terminate") 
         // (see below) mode, set SetMergeViaJDL(kFALSE) 
         // to collect final results
-        alienHandler->SetMaxMergeStages(1); //2, 3
+        alienHandler->SetMaxMergeStages(3); //2, 3
         alienHandler->SetMergeViaJDL(kTRUE);
 
         // define the output folders
-        alienHandler->SetGridWorkingDir("testNtuple");
-        alienHandler->SetGridOutputDir("output");
+        alienHandler->SetGridWorkingDir(gridWorkingDir.Data());
+        alienHandler->SetGridOutputDir(gridOutputDir.Data());
 
         // connect the alien plugin to the manager
         mgr->SetGridHandler(alienHandler);
@@ -179,7 +198,7 @@ void runAnalysis()
         } 
         else {
             // else launch the full grid analysis
-            alienHandler->SetRunMode("full"); //terminate
+            alienHandler->SetRunMode(runMode.Data()); //terminate
             mgr->StartAnalysis("grid");
         }
     }

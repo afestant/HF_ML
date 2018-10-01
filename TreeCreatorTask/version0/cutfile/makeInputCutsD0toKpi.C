@@ -47,13 +47,7 @@ AliRDHFCutsD0toKpi *makeInputCutsD0toKpi(Int_t whichCuts=0, TString nameCuts="D0
     if(whichCuts==1)esdTrackCuts->SetMinDCAToVertexXY(0.);
     if(whichCuts==0)esdTrackCuts->SetMinDCAToVertexXYPtDep("0.0025*TMath::Max(0.,(1-TMath::Floor(TMath::Abs(pt)/2.)))");
     if(whichCuts==1)esdTrackCuts->SetMinDCAToVertexXYPtDep("0.005*TMath::Max(0.,(1-TMath::Floor(TMath::Abs(pt)/2.)))");
-    
     cutsD0toKpi->AddTrackCuts(esdTrackCuts);
-    cutsD0toKpi->SetTriggerClass("");
-    cutsD0toKpi->SetTriggerMask(AliVEvent::kINT7);
-    cutsD0toKpi->SetMinCentrality(minc);
-    cutsD0toKpi->SetMaxCentrality(maxc);
-    cutsD0toKpi->SetUseCentrality(AliRDHFCuts::kCentV0M); //kCentOff,kCentV0M,kCentTRK,kCentTKL,kCentCL1,kCentInvalid
     
     if(whichCuts==0){
         const Int_t nptbinsD0=2;
@@ -88,14 +82,14 @@ AliRDHFCutsD0toKpi *makeInputCutsD0toKpi(Int_t whichCuts=0, TString nameCuts="D0
         cutsArrayD0toKpi[9][1]=-1.;
         cutsArrayD0toKpi[10][1]=0.;
         
-        cutsD0toKpi->SetStandardCutsPbPb2010();
+        cutsD0toKpi->SetStandardCutsPbPb2011();
         cutsD0toKpi->SetMinPtCandidate(0.);
         cutsD0toKpi->SetUsePID(kFALSE);
         cutsD0toKpi->SetUseTrackSelectionWithFilterBits(kFALSE);
         cutsD0toKpi->SetUseSpecialCuts(kFALSE);
         //cutsD0toKpi->SetUsePhysicsSelection(kFALSE);
         //cutsD0toKpi->SetMaxCentrality(101.);//90.);
-        cutsD0toKpi->SetMaxVtxZ(1.e6);
+        //cutsD0toKpi->SetMaxVtxZ(1.e6);
         cutsD0toKpi->SetPtBins(nptbinsD0+1,ptlimitsD0);
         cutsD0toKpi->SetCuts(11,nptbinsD0,cutsArrayD0toKpi);
     }
@@ -331,22 +325,25 @@ AliRDHFCutsD0toKpi *makeInputCutsD0toKpi(Int_t whichCuts=0, TString nameCuts="D0
         //RDHFD0toKpi->SetMaximumPforPID(4.);
         cutsD0toKpi->SetPidHF(pidObj);
         
-        //activate pileup rejection (for pp)
-        cutsD0toKpi->SetOptPileup(AliRDHFCuts::kNoPileupSelection);
-        
-        cutsD0toKpi->SetUseSpecialCuts(kFALSE);
         //Do not recalculate the vertex
         cutsD0toKpi->SetRemoveDaughtersFromPrim(kFALSE); //activate for pp
+        cutsD0toKpi->SetUseSpecialCuts(kFALSE);
+
         
-        //RDHFD0toKpi->SetUseAOD049(kTRUE);
-        cutsD0toKpi->SetMaxVtxZ(10.);
-        
-        //RDHFD0toKpi->SetRemoveTrackletOutliers(kTRUE);
-        cutsD0toKpi->SetCutOnzVertexSPD(2);
         
     }
     
-    cout<<"This is the odject I'm going to save:"<<endl;
+    //event selection
+    cutsD0toKpi->SetTriggerClass("");
+    cutsD0toKpi->SetTriggerMask(AliVEvent::kINT7);
+    cutsD0toKpi->SetMinCentrality(minc);
+    cutsD0toKpi->SetMaxCentrality(maxc);
+    cutsD0toKpi->SetUseCentrality(AliRDHFCuts::kCentV0M); //kCentOff,kCentV0M,kCentTRK,kCentTKL,kCentCL1,kCentInvalid
+    cutsD0toKpi->SetOptPileup(AliRDHFCuts::kNoPileupSelection);
+    cutsD0toKpi->SetMaxVtxZ(10.);
+    cutsD0toKpi->SetCutOnzVertexSPD(2);
+    
+    cout<<"This is the object I'm going to save:"<<endl;
     cutsD0toKpi->SetName(nameCuts.Data());
     cutsD0toKpi->SetTitle(nameCuts.Data());
     cutsD0toKpi->PrintAll();
