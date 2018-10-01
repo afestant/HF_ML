@@ -20,9 +20,15 @@ TString runMode="full";                                  // sets the run grid mo
 
 TString aliPhysVersion="vAN-20180930-1";
 
+Bool_t isRunOnMC=kFALSE;                                 // set to kTRUE to run on Mone Carlo and uncomment/comment accordingly the following lines about paths on Alien
 //paths on Alien
-TString gridDataDir="/alice/sim/2016/LHC16i2a/";
-TString gridDataPattern="AOD198";
+// Monte Carlo
+//TString gridDataDir="/alice/sim/2016/LHC16i2a/";
+//TString gridDataPattern="/AOD198";
+// Data
+TString gridDataDir="/alice/data/2015/LHC15o/";
+TString gridDataPattern="/pass1/AOD194";
+
 
 // Alien output directory
 TString gridWorkingDir="testNtupleCreator";
@@ -32,10 +38,12 @@ TString gridOutputDir="output";
 const Int_t nruns = 1;
 Int_t runlist[nruns] = {246994};
 
-Bool_t isRunOnMC=kTRUE;
-
 //Task configuration
-TString cutFile="./cutfile/D0DsDplusCuts.root";          // file containing the cuts for the different mesons, see directory cutfile
+TString cutFile="./cutfile/D0DsDplusCuts.root";          // file containing the cuts for the different mesons
+  														 // to generate the cut file: 1) move to cutfile directory
+  														 //                           2) .L makeCutsTreeCreator.C
+  														 //                           3) makeCutsTreeCreator();
+  														 // to run with ROOT5/6 generate the cut file using AliPhysics built on ROOT5/6
 
 
 //************************************
@@ -73,7 +81,7 @@ void runAnalysis()
     AliAnalysisTaskPIDResponse *pidResp = reinterpret_cast<AliAnalysisTaskPIDResponse *>(gInterpreter->ProcessLine(Form(".x %s (%d)", gSystem->ExpandPathName("$ALICE_ROOT/ANALYSIS/macros/AddTaskPIDResponse.C"),isRunOnMC)));
     
     AliMultSelectionTask *multSel = reinterpret_cast<AliMultSelectionTask *>(gInterpreter->ProcessLine(Form(".x %s", gSystem->ExpandPathName("$ALICE_PHYSICS/OADB/COMMON/MULTIPLICITY/macros/AddTaskMultSelection.C"))));
-    multSel->SetAlternateOADBforEstimators("LHC15o-DefaultMC-HIJING");
+    //multSel->SetAlternateOADBforEstimators("LHC15o-DefaultMC-HIJING");
 
     gInterpreter->LoadMacro("AliHFCutOptTreeHandler.cxx++g");
     gInterpreter->LoadMacro("AliAnalysisTaskSEHFTreeCreator.cxx++g");
@@ -92,7 +100,7 @@ void runAnalysis()
     
     gROOT->LoadMacro("$ALICE_PHYSICS/OADB/COMMON/MULTIPLICITY/macros/AddTaskMultSelection.C");
     AliMultSelectionTask *multSel = AddTaskMultSelection();
-    multSel->SetAlternateOADBforEstimators("LHC15o-DefaultMC-HIJING");
+    //multSel->SetAlternateOADBforEstimators("LHC15o-DefaultMC-HIJING");
 
     gROOT->LoadMacro("AliHFCutOptTreeHandler.cxx++g");
     gROOT->LoadMacro("AliAnalysisTaskSEHFTreeCreator.cxx++g");
@@ -151,7 +159,7 @@ void runAnalysis()
 
         // select the input data
         alienHandler->SetGridDataDir(gridDataDir.Data());
-        alienHandler->SetDataPattern(Form("/%s/*AliAOD.root",gridDataPattern.Data()));
+        alienHandler->SetDataPattern(Form("%s/*AliAOD.root",gridDataPattern.Data()));
         alienHandler->SetFriendChainName("AliAOD.VertexingHF.root");
 
         // MC has no prefix, data has prefix 000

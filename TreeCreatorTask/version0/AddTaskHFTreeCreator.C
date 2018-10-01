@@ -70,7 +70,7 @@ AliAnalysisTaskSEHFTreeCreator *AddTaskHFTreeCreator(Bool_t readMC=kTRUE,
     task->SetPIDoptD0Tree(pidOptD0);
     task->SetPIDoptDsTree(pidOptDs);
     task->SetPIDoptDplusTree(pidOptDplus);
-    task->SetDebugLevel(4);
+    //task->SetDebugLevel(4);
     
     mgr->AddTask(task);
     
